@@ -1,25 +1,8 @@
-Welcome to the HyperDev BETA
+Multiaviator
 ============================
 
-Click `"Show"` in the header to see your app is live. Updates to your code will instantly deploy and update live.
+Three.js learning project in which I'm creating a multiplayer shooter based on The Aviator (http://tympanus.net/codrops/2016/04/26/the-aviator-animating-basic-3d-scene-threejs/)
 
-HyperDev is a developer playground that lets you code a real web-app without the slow setup and deployment steps.
-
-
-Your Project
-------------
-
-On the back-end,
-- your app starts at `server.js`
-- add frameworks and packages in `package.json`
-- safely store app secrets in `.env`
-
-On the front-end,
-- edit `client.js`, `style.css` and `index.html`
-- drag in `assets`, like images or music, to add them to your project
-
-
-Made by Fog Creek
------------------
+This is meant to be running on Hyperdev when finished: https://hollow-surf.hyperdev.space/
 
 \ ゜o゜)ノ
