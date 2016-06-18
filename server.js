@@ -66,11 +66,14 @@ io.on('connection', (socket) => {
 	});
 
 	socket.on('positionUpdate', (position) => {
-		//console.log(`${socket.id} -> positionUpdate x:${position.x}, y${position.y}`);
 		socket.broadcast.emit('playerPositionUpdate', {
 			clientId: socket.id,
 			position: position
 		});
+	});
+
+	socket.on('shootBullet', (payload) => {
+		socket.broadcast.emit('shootBullet', payload);
 	});
 });
 

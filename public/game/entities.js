@@ -23,6 +23,18 @@
 
 			let geomCockpit = new THREE.BoxGeometry(60, 50, 50, 1, 1, 1);
 			let matCockpit = new THREE.MeshLambertMaterial({ color: options.color || colors.Red, shading: THREE.FlatShading });
+
+			geomCockpit.vertices[4].y-=10;
+			geomCockpit.vertices[4].z+=10;
+			geomCockpit.vertices[4].x-=20;
+			geomCockpit.vertices[5].y-=10;
+			geomCockpit.vertices[5].z-=10;
+			geomCockpit.vertices[5].x-=20;
+			geomCockpit.vertices[6].y+=10;
+			geomCockpit.vertices[6].z+=20;
+			geomCockpit.vertices[7].y+=10;
+			geomCockpit.vertices[7].z-=20;
+
 			let cockpit = new THREE.Mesh(geomCockpit, matCockpit);
 			cockpit.castShadow = true;
 			cockpit.receiveShadow = true;
@@ -50,7 +62,7 @@
 			let geomTailPlane = new THREE.BoxGeometry(15, 20, 5, 1, 1, 1);
 			let matTailPlane = new THREE.MeshLambertMaterial({ color: options.color || colors.Red, shading: THREE.FlatShading });
 			let tailPlane = new THREE.Mesh(geomTailPlane, matTailPlane);
-			tailPlane.position.set(-35, 25, 0);
+			tailPlane.position.set(-45, 25, 0);
 			tailPlane.castShadow = true;
 			tailPlane.receiveShadow = true;
 			this.mesh.add(tailPlane);
@@ -59,10 +71,10 @@
 		createWing(options) {
 			options = options || {};
 
-			let geomSideWing = new THREE.BoxGeometry(40, 8, 150, 1, 1, 1);
+			let geomSideWing = new THREE.BoxGeometry(40, 5, 120, 1, 1, 1);
 			let matSideWing = new THREE.MeshLambertMaterial({ color: options.color || colors.Red, shading: THREE.FlatShading });
 			let sideWing = new THREE.Mesh(geomSideWing, matSideWing);
-			sideWing.position.set(0, 0, 0);
+			sideWing.position.set(0, 10, 0);
 			sideWing.castShadow = true;
 			sideWing.receiveShadow = true;
 			this.mesh.add(sideWing);
@@ -206,7 +218,7 @@
 
 	class Bullet {
 		constructor(options) {
-			let geom = new THREE.CylinderBufferGeometry(2, 2, 4, 5, 2);
+			let geom = new THREE.SphereGeometry(3, 4, 4);
 			let mat = new THREE.MeshBasicMaterial({
 				color: colors.Brown,
 			});
@@ -217,6 +229,22 @@
 			this.mesh.name = "bullet";
 			this.mesh.receiveShadow = false;
 			this.mesh.castShadow = true;
+
+			this.mesh.position.z = 200;
+
+			this.birthTime = null;
+			this.alive = false;
+			this.direction = new THREE.Vector3();
+			this.velocity = new THREE.Vector3();
+		}
+
+		die() {
+			this.alive = false;
+		}
+
+		shoot() {
+			this.birthTime = performance.now();
+			this.alive = true;
 		}
 	}
 

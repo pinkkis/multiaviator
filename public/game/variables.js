@@ -3,22 +3,19 @@ window.game = window.game || {};
 
 	class Colors {
 		get Player() {
-			return 0xf33333;
+			return 0xff3333;
 		}
 		get RandomPlayerColor() {
-			let colors = [0x3333ff, 0x6666ff, 0x3366ff, 0x663366, 0xffff33, 0xff66ff, 0xff6666, 0x66ff33];
+			let colors = [0x3333ff, 0x663366, 0x6666ff, 0x3366ff, 0xffff33, 0xff66ff, 0xff6666, 0x66ff33];
 			let randomIndex = Math.floor(Math.random() * colors.length);
 			return colors[randomIndex];
 		}
-
 		get Grey() {
 			return 0x999999;
 		}
-
 		get DarkGrey() {
 			return 0x444444;
 		}
-
 		get Red() {
 			return 0xf25346;
 		}

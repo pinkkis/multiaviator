@@ -7,6 +7,7 @@
 
 	const groundRadius = 3500;
 	const gameSpeed = 0.2;
+	const bulletLifeTime = 1000;
 
 	let scene,
 		deltaTime = 0,
@@ -20,7 +21,7 @@
 		HEIGHT, WIDTH,
 		mousePos = { x: 0, y: 0 },
 		sky, airplane, ground,
-		ambientLight, hemisphereLight, shadowLight,
+		ambientLight, shadowLight,
 		colors = new game.Colors(),
 		network = new game.Network(),
 		stats = new Stats();
@@ -78,8 +79,9 @@
 
 	// LIGHTS
 	function createLights() {
-		hemisphereLight = new THREE.HemisphereLight(colors.White, 0x333333, 0.85);
-		shadowLight = new THREE.DirectionalLight(0xffffcc, 1);
+		//hemisphereLight = new THREE.HemisphereLight(colors.White, 0x333333, 0.85);
+		ambientLight = new THREE.AmbientLight(0xeeeeff, 0.3);
+		shadowLight = new THREE.DirectionalLight(0xffffcc, 1.5);
 
 		shadowLight.position.set(150, 1000, 250);
 		shadowLight.castShadow = true;
@@ -93,7 +95,7 @@
 		shadowLight.shadow.mapSize.width = 2048;
 		shadowLight.shadow.mapSize.height = 2048;
 
-		scene.add(hemisphereLight);
+		scene.add(ambientLight);
 		scene.add(shadowLight);
 	}
 
@@ -136,6 +138,7 @@
 		oldTime = newTime;
 
 		updatePlayerPlane();
+		updateBullets();
 		updateOtherPlayerPlanes();
 		ground.mesh.rotation.z += deltaTime * gameSpeed * 0.0001;
 		sky.mesh.rotation.z += deltaTime * gameSpeed * 0.0002;
@@ -148,7 +151,6 @@
 		players.forEach((player) => {
 			tweenPositionToTarget(player.model.mesh, player.lastNetPosition.x, player.lastNetPosition.y);
 			player.model.propeller.rotation.x += deltaTime * 0.05;
-
 		});
 	}
 
@@ -162,11 +164,9 @@
 	}
 
 	function tweenPositionToTarget(mesh, targetX, targetY) {
-		// Move the plane at each frame by adding a fraction of the remaining distance
 		mesh.position.x += (targetX - mesh.position.x) * deltaTime * 0.0075;
 		mesh.position.y += (targetY - mesh.position.y) * deltaTime * 0.0075;
 
-		// Rotate the plane proportionally to the remaining distance
 		mesh.rotation.z = (targetY - mesh.position.y) * deltaTime * 0.0005;
 		mesh.rotation.x = (mesh.position.y - targetY) * deltaTime * 0.0005;
 	}
@@ -225,9 +225,12 @@
 		network.socket.on('playerPositionUpdate', (payload) => {
 			if (payload.clientId !== network.clientId) {
 				let player = findPlayerByClientId(payload.clientId);
-				console.log(player);
 				player.lastNetPosition = payload.position;
 			}
+		});
+
+		network.socket.on('shootBullet', (payload) => {
+			shootBullet(payload.pos, payload.dir);
 		});
 	}
 
@@ -267,8 +270,13 @@
 		stats.showPanel(1);
 		document.body.appendChild(stats.dom);
 		document.addEventListener('mousemove', handleMouseMove, false);
+		document.addEventListener('click', handleMouseClick, false);
 
 		initNetworkEvents();
+
+		for (let i=0;i<50;i++) {
+			bullets.push(new game.entities.Bullet());
+		}
 
 		createScene();
 		createLights();
@@ -279,6 +287,46 @@
 	}
 
 	// HANDLE MOUSE EVENTS
+	function handleMouseClick(event) {
+		let position = new THREE.Vector3();
+		position.setFromMatrixPosition(airplane.mesh.matrix);
+
+		let m1 = new THREE.Matrix4();
+		let directionMatrix = m1.extractRotation(airplane.mesh.matrix);
+
+		let direction = new THREE.Vector3(4, 0, 0);
+		direction = direction.applyMatrix4(directionMatrix);
+		direction.z = 0;
+
+		network.socket.emit('shootBullet', {pos: position, dir: direction});
+		shootBullet(position, direction);
+	}
+
+	function shootBullet(position, direction) {
+		let bullet = bullets.filter((b) => { return !b.alive; })[0];
+		if (bullet) {
+			bullet.mesh.position.x = position.x + 20;
+			bullet.mesh.position.y = position.y;
+			bullet.direction = direction;
+			bullet.shoot();
+			scene.add(bullet.mesh);
+		}
+	}
+
+	function updateBullets() {
+		let now = performance.now();
+		bullets
+			.filter((b) => { return b.alive; })
+			.forEach((b) => {
+				if (b.birthTime + bulletLifeTime < now) {
+					b.die();
+					scene.remove(b.mesh);
+				}
+
+				b.mesh.position.addScaledVector(b.direction, deltaTime * 0.2);
+			});
+	}
+
 	function handleMouseMove(event) {
 		var tx = -1 + (event.clientX / WIDTH) * 2;
 		var ty = 1 - (event.clientY / HEIGHT) * 2;
@@ -287,7 +335,7 @@
 	}
 
 	var throttledPositionUpdate = throttle(() => {
-		var translatedY = normalize(mousePos.y, -0.75, 0.75, -50, 220);
+		var translatedY = normalize(mousePos.y, -0.75, 0.75, -50, 330);
 		var translatedX = normalize(mousePos.x, -0.75, 0.75, -300, 300);
 
 		network.socket.emit('positionUpdate', {x: translatedX, y: translatedY});
