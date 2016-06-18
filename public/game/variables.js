@@ -6,9 +6,8 @@ window.game = window.game || {};
 			return 0xff3333;
 		}
 		get RandomPlayerColor() {
-			let colors = [0x3333ff, 0x663366, 0x6666ff, 0x3366ff, 0xffff33, 0xff66ff, 0xff6666, 0x66ff33];
-			let randomIndex = Math.floor(Math.random() * colors.length);
-			return colors[randomIndex];
+			let color = new THREE.Color(`hsl(${Math.floor(Math.random()*255)}, 95%, 50%)`);
+			return color.getHex();
 		}
 		get Grey() {
 			return 0x999999;

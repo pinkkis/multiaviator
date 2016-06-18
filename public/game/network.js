@@ -14,11 +14,7 @@
 			});
 		}
 
-
-
 	}
-
-
 
 	window.game.Network = Network;
 })();
