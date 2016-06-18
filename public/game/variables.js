@@ -11,6 +11,14 @@ window.game = window.game || {};
 			return colors[randomIndex];
 		}
 
+		get Grey() {
+			return 0x999999;
+		}
+
+		get DarkGrey() {
+			return 0x444444;
+		}
+
 		get Red() {
 			return 0xf25346;
 		}
