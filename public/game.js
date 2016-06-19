@@ -312,7 +312,9 @@
 		stats.showPanel(0);
 		document.body.appendChild(stats.dom);
 
+		let $nameInput = document.querySelector("#login input");
 		let $submitButton = document.querySelector("#submitname");
+		$nameInput.addEventListener('keyup', requestJoinGameKeyUp, false);
 		$submitButton.addEventListener('click', requestJoinGame, true);
 
 		document.addEventListener('mousemove', handleMouseMove, false);
@@ -335,6 +337,12 @@
 			$el.style.display = !show ? 'none' : 'block';
 		} else {
 			$el.style.display = $el.style.display !== 'block' ? 'block' : 'none';
+		}
+	}
+
+	function requestJoinGameKeyUp(event) {
+		if (event.keyCode === 13) {
+			requestJoinGame();
 		}
 	}
 
