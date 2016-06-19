@@ -314,6 +314,7 @@
 
 		let $nameInput = document.querySelector("#login input");
 		let $submitButton = document.querySelector("#submitname");
+		$nameInput.focus();
 		$nameInput.addEventListener('keyup', requestJoinGameKeyUp, false);
 		$submitButton.addEventListener('click', requestJoinGame, true);
 
