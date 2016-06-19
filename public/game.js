@@ -274,7 +274,7 @@
 
 		initNetworkEvents();
 
-		for (let i=0;i<50;i++) {
+		for (let i=0;i<100;i++) {
 			bullets.push(new game.entities.Bullet());
 		}
 
@@ -305,7 +305,7 @@
 	function shootBullet(position, direction) {
 		let bullet = bullets.filter((b) => { return !b.alive; })[0];
 		if (bullet) {
-			bullet.mesh.position.x = position.x + 20;
+			bullet.mesh.position.x = position.x + 15;
 			bullet.mesh.position.y = position.y;
 			bullet.direction = direction;
 			bullet.shoot();
