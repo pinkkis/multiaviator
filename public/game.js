@@ -5,9 +5,14 @@
 	window.addEventListener('load', init, false);
 	window.addEventListener('resize', handleWindowResize, false);
 
+	const Text2D = THREE_Text.Text2D;
+	const SpriteText2D = THREE_Text.SpriteText2D;
+	const textAlign = THREE_Text.textAlign;
+
 	const groundRadius = 3500;
 	const gameSpeed = 0.2;
-	const bulletLifeTime = 1000;
+	const bulletLifeTime = 1500;
+	const tweenSpeed = 0.0075;
 
 	let scene,
 		deltaTime = 0,
@@ -20,19 +25,21 @@
 		renderer, container,
 		HEIGHT, WIDTH,
 		mousePos = { x: 0, y: 0 },
-		sky, airplane, ground,
+		sky, playerPlane, ground,
 		ambientLight, shadowLight,
 		colors = new game.Colors(),
 		network = new game.Network(),
 		stats = new Stats();
 
+	game.joinedGame = false;
+	game.player = null;
 
 	//INIT THREE JS, SCREEN AND MOUSE EVENTS
 	function clampedAspectRatio(height, width) {
 		let ratio = height / width;
 
-		return ratio > 3 ? 3
-				: ratio < 1.1 ? 1.1 : ratio;
+		return ratio > 4 ? 4
+			: ratio < 0.5 ? 0.5 : ratio;
 	}
 
 	function createScene() {
@@ -83,7 +90,7 @@
 		ambientLight = new THREE.AmbientLight(0xeeeeff, 0.3);
 		shadowLight = new THREE.DirectionalLight(0xffffcc, 1.5);
 
-		shadowLight.position.set(150, 1000, 250);
+		shadowLight.position.set(250, 500, 300);
 		shadowLight.castShadow = true;
 
 		shadowLight.shadow.camera.left = -600;
@@ -99,27 +106,28 @@
 		scene.add(shadowLight);
 	}
 
-	// 3D Models
-	function createPlayerPlane() {
-		airplane = new game.entities.AirPlane();
-		airplane.mesh.scale.set(0.25, 0.25, 0.25);
-		airplane.mesh.position.y = 100;
-		airplane.mesh.position.z = 200;
-		scene.add(airplane.mesh);
+	function createNameLabel(name) {
+		let nameLabel = new SpriteText2D(name, { align: textAlign.center, font: '40px Arial', fillStyle: '#000000', antialias: false });
+		nameLabel.position.set(0, 90, 0);
+
+		return nameLabel;
 	}
 
-	function createOtherPlayerPlane() {
-		let airplane = new game.entities.AirPlane({ color: colors.RandomPlayerColor });
-		airplane.mesh.scale.set(0.25, 0.25, 0.25);
-		airplane.mesh.position.y = 100;
-		airplane.mesh.position.z = 200;
+	function createPlane(options) {
+		let color = parseInt(options.color);
+		let plane = new game.entities.AirPlane({color: color});
+		plane.mesh.scale.set(0.25, 0.25, 0.25);
+		plane.mesh.position.y = 100;
+		plane.mesh.position.z = 200;
 
-		return airplane;
+		plane.mesh.add(createNameLabel(options.name));
+
+		return plane;
 	}
 
 	function createGround() {
 		ground = new game.entities.Ground();
-		ground.mesh.position.y = -groundRadius -100;
+		ground.mesh.position.y = -groundRadius - 100;
 
 		scene.add(ground.mesh);
 	}
@@ -131,19 +139,23 @@
 	}
 
 	function loop() {
-		stats.begin();
-
 		newTime = performance.now();
-		deltaTime = newTime-oldTime;
+		deltaTime = newTime - oldTime;
 		oldTime = newTime;
 
+		stats.begin();
+
 		updatePlayerPlane();
-		updateBullets();
 		updateOtherPlayerPlanes();
+		updateBullets();
+
 		ground.mesh.rotation.z += deltaTime * gameSpeed * 0.0001;
 		sky.mesh.rotation.z += deltaTime * gameSpeed * 0.0002;
+
 		renderer.render(scene, camera);
+
 		stats.end();
+
 		requestAnimationFrame(loop);
 	}
 
@@ -155,35 +167,34 @@
 	}
 
 	function updatePlayerPlane() {
-		var targetY = normalize(mousePos.y, -0.75, 0.75, -50, 330);
-		var targetX = normalize(mousePos.x, -0.75, 0.75, -300, 300);
+		// ignore before in game
+		if (!game.joinedGame) return;
 
-		tweenPositionToTarget(airplane.mesh, targetX, targetY);
+		let targetY = normalize(mousePos.y, -0.75, 0.75, -50, 330);
+		let targetX = normalize(mousePos.x, -0.75, 0.75, -300, 300);
 
-		airplane.propeller.rotation.x += deltaTime * 0.05;
+		tweenPositionToTarget(playerPlane.mesh, targetX, targetY);
+
+		playerPlane.propeller.rotation.x += deltaTime * 0.05;
 	}
 
 	function tweenPositionToTarget(mesh, targetX, targetY) {
-		mesh.position.x += (targetX - mesh.position.x) * deltaTime * 0.0075;
-		mesh.position.y += (targetY - mesh.position.y) * deltaTime * 0.0075;
+		mesh.position.x += (targetX - mesh.position.x) * deltaTime * tweenSpeed;
+		mesh.position.y += (targetY - mesh.position.y) * deltaTime * tweenSpeed;
 
-		mesh.rotation.z = (targetY - mesh.position.y) * deltaTime * 0.0005;
-		mesh.rotation.x = (mesh.position.y - targetY) * deltaTime * 0.0005;
+		mesh.rotation.z = (targetY - mesh.position.y) * deltaTime * tweenSpeed * 0.05;
+		mesh.rotation.x = (mesh.position.y - targetY) * deltaTime * tweenSpeed * 0.04;
 	}
 
-	function addPlayer(clientId, name) {
-		console.log('addPlayer', clientId);
+	function addPlayer(player) {
+		let pl = new game.Player(player);
+		pl.model = createPlane({name: player.name, color: player.color});
+		players.push(pl);
 
-		let player = new game.Player(clientId, name);
-		player.model = createOtherPlayerPlane();
-
-		scene.add(player.model.mesh);
-		players.push(player);
+		scene.add(pl.model.mesh);
 	}
 
 	function removePlayer(clientId) {
-		console.log('removePlayer', clientId);
-
 		let playerIdx = players
 			.map((e) => { return e.clientId; })
 			.indexOf(clientId);
@@ -203,34 +214,55 @@
 	}
 
 	function initNetworkEvents() {
-		network.socket.on('addPlayer', (clientId) => {
+		let server = network.socket;
+		server.on('connect', () => {
+			toggleHtmlElement('#disconnected', false);
+			toggleHtmlElement('#login', true);
+		});
+
+		server.on('addPlayer', (player) => {
 			// check that it's not own id
-			if (clientId !== network.clientId) {
-				addPlayer(clientId);
+			if (player.clientId !== network.clientId) {
+				addPlayer(player);
 			}
 		});
 
-		network.socket.on('removePlayer', (clientId) => {
+		server.on('removePlayer', (clientId) => {
 			if (clientId !== network.clientId) {
 				removePlayer(clientId);
 			}
 		});
 
-		network.socket.on('disconnect', () => {
+		server.on('disconnect', () => {
 			players.forEach((player) => {
 				removePlayer(player.clientId);
 			});
+
+			game.joinedGame = false;
+			scene.remove(playerPlane.mesh);
+			game.player = null;
+
+			toggleHtmlElement('#disconnected', false);
 		});
 
-		network.socket.on('playerPositionUpdate', (payload) => {
+		server.on('playerPositionUpdate', (payload) => {
 			if (payload.clientId !== network.clientId) {
 				let player = findPlayerByClientId(payload.clientId);
+				//if (!player) { return; }
 				player.lastNetPosition = payload.position;
 			}
 		});
 
-		network.socket.on('shootBullet', (payload) => {
+		server.on('shootBullet', (payload) => {
 			shootBullet(payload.pos, payload.dir);
+		});
+
+		server.on('joinGame', (playerInfo) => {
+			game.joinedGame = true;
+			game.player = playerInfo;
+
+			playerPlane = createPlane({name: game.player.name, color: game.player.color});
+			scene.add(playerPlane.mesh);
 		});
 	}
 
@@ -266,39 +298,71 @@
 		return tv;
 	}
 
+	function createBulletPool(poolSize) {
+		poolSize = poolSize || 100;
+		for (let i = 0; i < poolSize; i++) {
+			bullets.push(new game.entities.Bullet());
+		}
+	}
+
 	function init(event) {
-		stats.showPanel(1);
+		stats.showPanel(0);
 		document.body.appendChild(stats.dom);
+
+		let $submitButton = document.querySelector("#submitname");
+		$submitButton.addEventListener('click', requestJoinGame, true);
+
 		document.addEventListener('mousemove', handleMouseMove, false);
 		document.addEventListener('click', handleMouseClick, false);
 
 		initNetworkEvents();
 
-		for (let i=0;i<100;i++) {
-			bullets.push(new game.entities.Bullet());
-		}
-
 		createScene();
+		createBulletPool(100);
 		createLights();
-		createPlayerPlane();
 		createGround();
 		createSky();
 		loop();
 	}
 
-	// HANDLE MOUSE EVENTS
+	function toggleHtmlElement(selector, show) {
+		let $el = document.querySelector(selector);
+		if (!$el) { return; }
+		if (show !== 'undefined') {
+			$el.style.display = !show ? 'none' : 'block';
+		} else {
+			$el.style.display = $el.style.display !== 'block' ? 'block' : 'none';
+		}
+	}
+
+	function requestJoinGame(event) {
+		if (game.joinedGame) return;
+
+		let $nameInput = document.querySelector("#login input");
+		let name = $nameInput.value;
+		let playerColor = colors.RandomPlayerColor;
+
+		if (name && name.trim()) {
+			toggleHtmlElement('#login', false);
+			network.socket.emit('joinRequest', {name: name, color: playerColor});
+		}
+	}
+
 	function handleMouseClick(event) {
+		// ignore before in game
+		if (!game.joinedGame) return;
+
 		let position = new THREE.Vector3();
-		position.setFromMatrixPosition(airplane.mesh.matrix);
+		position.setFromMatrixPosition(playerPlane.mesh.matrix);
 
 		let m1 = new THREE.Matrix4();
-		let directionMatrix = m1.extractRotation(airplane.mesh.matrix);
+		let directionMatrix = m1.extractRotation(playerPlane.mesh.matrix);
 
 		let direction = new THREE.Vector3(4, 0, 0);
 		direction = direction.applyMatrix4(directionMatrix);
 		direction.z = 0;
 
-		network.socket.emit('shootBullet', {pos: position, dir: direction});
+		network.socket.emit('shootBullet', { pos: position, dir: direction });
 		shootBullet(position, direction);
 	}
 
@@ -328,6 +392,9 @@
 	}
 
 	function handleMouseMove(event) {
+		// ignore before in game
+		if (!game.joinedGame) return;
+
 		var tx = -1 + (event.clientX / WIDTH) * 2;
 		var ty = 1 - (event.clientY / HEIGHT) * 2;
 		mousePos = { x: tx, y: ty };
@@ -338,7 +405,7 @@
 		var translatedY = normalize(mousePos.y, -0.75, 0.75, -50, 330);
 		var translatedX = normalize(mousePos.x, -0.75, 0.75, -300, 300);
 
-		network.socket.emit('positionUpdate', {x: translatedX, y: translatedY});
+		network.socket.emit('positionUpdate', { x: translatedX, y: translatedY, z: playerPlane.mesh.position.z });
 	}, 50);
 
 })();

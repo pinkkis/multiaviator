@@ -9,11 +9,22 @@
 		<link rel="stylesheet" type="text/css" href="public/styles.css" />
 	</head>
 
-	<body class="game-holder">
+	<body>
 		<div class="world" id="world"></div>
+		<div id="login" class="message-box">
+			<h3 style="margin: 0;">Multiaviator test</h3>
+			<p>Enter your name to join:</p>
+			<input type="text" name="player-name" placeholder="Enter a name..." maxlength="12">
+			<button id="submitname">Ok!</button>
+		</div>
+
+		<div id="disconnected" style="display: none;" class="message-box">
+			<p>Disconnected. Try refreshing the page...</p>
+		</div>
 
 		<script type="text/javascript" src="//rawgit.com/mrdoob/stats.js/master/build/stats.min.js"></script>
 		<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r78/three.min.js"></script>
+		<script type="text/javascript" src="//rawgit.com/gamestdio/three-text2d/master/dist/three-text2d.min.js"></script>
 		<script src="/socket.io/socket.io.js"></script>
 
 		<script type="text/javascript" src="public/game/network.js"></script>

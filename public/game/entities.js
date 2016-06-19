@@ -22,7 +22,7 @@
 			});
 
 			this.metalMat = new THREE.MeshPhongMaterial({
-				color: colors.LightGrey,
+				color: colors.Grey,
 				shininess: 100
 			});
 

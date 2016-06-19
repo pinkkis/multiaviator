@@ -1,13 +1,10 @@
 html, body {
   margin: 0;
   padding: 0;
-	background: linear-gradient(#cef, #79e);
-}
-
-.game-holder {
-	position: absolute;
 	width: 100%;
 	height: 100%;
+	position: relative;
+	background: linear-gradient(#cef, #79e);
 }
 
 .world {
@@ -15,4 +12,15 @@ html, body {
 	overflow: hidden;
 	width: 100%;
 	height: 100%;
+}
+
+.message-box {
+	position: absolute;
+	background: #eec;
+	padding: 1em;
+	border: 1px solid black;
+	width: 300px;
+	margin: 1em auto;
+	right: calc(50% - 150px);
+	box-sizing: border-box;
 }
