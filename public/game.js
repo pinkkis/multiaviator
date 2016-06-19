@@ -239,10 +239,13 @@
 			});
 
 			game.joinedGame = false;
-			scene.remove(playerPlane.mesh);
-			game.player = null;
+			if (game.player) {
+				scene.remove(playerPlane.mesh);
+				game.player = null;
+			}
 
-			toggleHtmlElement('#disconnected', false);
+			toggleHtmlElement('#login', false);
+			toggleHtmlElement('#disconnected', true);
 		});
 
 		server.on('playerPositionUpdate', (payload) => {
