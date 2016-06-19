@@ -6,10 +6,15 @@
   "scripts": {
     "start": "node server.js"
   },
-	"engines": {
-		"node": "4.4.3"
-	},
-  "keywords": ["hyperdev", "three.js", "multiplayer", "game"],
+  "engines": {
+    "node": "4.4.3"
+  },
+  "keywords": [
+    "hyperdev",
+    "three.js",
+    "multiplayer",
+    "game"
+  ],
   "bugs": {
     "url": "https://github.com/pinkkis/multiaviator/issues"
   },
