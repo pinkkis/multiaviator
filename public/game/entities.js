@@ -6,6 +6,13 @@
 
 	const bulletMaterial = new THREE.MeshBasicMaterial({ color: colors.Brown });
 	const sphereGeometry = new THREE.SphereGeometry(5, 5, 3);
+	const enemyGeometry = new THREE.TorusGeometry(20, 12, 7, 10);
+	const enemyMaterial = new THREE.MeshStandardMaterial({
+		color: 0x223322,
+		metalness: 0.75,
+		shading: THREE.FlatShading,
+		roughness: 0.3
+	});
 
 	const groundRadius = 3500;
 
@@ -312,14 +319,42 @@
 			this.alive = false;
 		}
 
-		shoot() {
+		spawn(shooter) {
+			this.owner = shooter || null;
 			this.birthTime = performance.now();
 			this.alive = true;
 		}
 	}
 
 	class Enemy {
+		constructor(options) {
+			this.id = 0;
+			this.mesh = new THREE.Mesh(enemyGeometry, enemyMaterial);
+			this.mesh.name = "enemy";
+			this.mesh.castShadow = true;
+			this.mesh.receiveShadow = false;
 
+			this.mesh.position.z = 200;
+
+			this.birthTime = null;
+			this.alive = false;
+
+			this.lastNetPosition = {x: 0, y: 0};
+		}
+
+		die() {
+			this.alive = false;
+			this.id = 0;
+		}
+
+		spawn() {
+			this.birthTime = Date.now();
+			this.alive = true;
+		}
+
+		get color() {
+			return 0x000000;
+		}
 	}
 
 	game.entities = {

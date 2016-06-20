@@ -1,9 +1,14 @@
+* {
+	box-sizing: border-box;
+}
+
 html, body {
-  margin: 0;
-  padding: 0;
+	margin: 0;
+	padding: 0;
 	width: 100%;
 	height: 100%;
 	position: relative;
+	overflow: hidden;
 	background: linear-gradient(#cef, #79e);
 }
 
@@ -23,4 +28,36 @@ html, body {
 	margin: 1em auto;
 	right: calc(50% - 150px);
 	box-sizing: border-box;
+}
+
+#chat {
+	pointer-events: none;
+
+	position: absolute;
+	left: .33em;
+	bottom: .33em;
+
+	width: 400px;
+	max-width: 50%;
+
+	background-color: rgba(0, 0, 0, .25);
+}
+
+#messages {
+	min-height: 3em;
+	max-height: 200px;
+	overflow-y: auto;
+	overflow-x: hidden;
+
+	color: #fff;
+	padding: .25em;
+}
+
+#chat > input {
+	width: 100%;
+	background-color: rgba(255, 255, 255, 0.8);
+	border: 1px solid #777;
+	padding: .2em;
+
+	pointer-events: all;
 }

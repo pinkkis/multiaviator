@@ -11,7 +11,8 @@
 
 	const groundRadius = 3500;
 	const gameSpeed = 0.2;
-	const bulletLifeTime = 1500;
+	const bulletLifetime = 1500;
+	const enemyCleanupLifetime = 20000;
 	const tweenSpeed = 0.0075;
 
 	let scene,
@@ -148,6 +149,7 @@
 		updatePlayerPlane();
 		updateOtherPlayerPlanes();
 		updateBullets();
+		updateEnemies();
 
 		ground.mesh.rotation.z += deltaTime * gameSpeed * 0.0001;
 		sky.mesh.rotation.z += deltaTime * gameSpeed * 0.0002;
@@ -205,12 +207,12 @@
 		}
 	}
 
-	function findPlayerByClientId(clientId) {
-		let playerIdx = players
-			.map((e) => { return e.clientId; })
-			.indexOf(clientId);
+	function findObjectByKeyValue(array, key, value) {
+		let objId = array
+			.map((e) => { return e[key]; })
+			.indexOf(value);
 
-		return playerIdx > -1 ? players[playerIdx] : null;
+		return objId > -1 ? array[objId] : null;
 	}
 
 	function initNetworkEvents() {
@@ -250,14 +252,15 @@
 
 		server.on('playerPositionUpdate', (payload) => {
 			if (payload.clientId !== network.clientId) {
-				let player = findPlayerByClientId(payload.clientId);
-				//if (!player) { return; }
+				let player = findObjectByKeyValue(players, 'clientId', payload.clientId);
+				if (!player) { return; }
 				player.lastNetPosition = payload.position;
 			}
 		});
 
 		server.on('shootBullet', (payload) => {
-			shootBullet(payload.pos, payload.dir);
+			let player = findObjectByKeyValue(players, 'clientId', payload.shooter);
+			shootBullet(payload.pos, payload.dir, player);
 		});
 
 		server.on('joinGame', (playerInfo) => {
@@ -267,6 +270,67 @@
 			playerPlane = createPlane({name: game.player.name, color: game.player.color});
 			scene.add(playerPlane.mesh);
 		});
+
+		server.on('enemyUpdate', (enemyList) => {
+			enemyList.forEach((enemy) => {
+				let foundEnemy = findObjectByKeyValue(enemies, 'id', enemy.id);
+				if (!foundEnemy) { spawnEnemy(enemy); }
+				//foundEnemy.lastNetPosition = enemy.position;
+			});
+
+			enemies.forEach((existingEnemy) => {
+				let enemyIdx = enemyList.map((e) => {
+									return e.id;
+								}).indexOf(existingEnemy.id);
+				if (enemyIdx === -1) {
+					killEnemy(existingEnemy);
+				}
+			});
+		});
+
+		server.on('chatMessage', (name, message) => {
+			addChatMessage(name, message);
+		});
+	}
+
+	function spawnEnemy(serverEnemy) {
+		let enemy = enemies.filter((e) => { return !e.alive; })[0];
+		if (enemy) {
+			enemy.id = serverEnemy.id;
+			enemy.birthTime = serverEnemy.birthTime;
+			enemy.health = serverEnemy.health;
+
+			enemy.mesh.position.x = serverEnemy.position.x;
+			enemy.mesh.position.y = serverEnemy.position.y;
+			enemy.mesh.position.z = serverEnemy.position.z;
+
+			enemy.spawn();
+			scene.add(enemy.mesh);
+		}
+
+	}
+
+	function killEnemy(serverEnemy) {
+		let enemy = findObjectByKeyValue(enemies, 'id', serverEnemy.id);
+		if (enemy) {
+			enemy.die();
+			scene.remove(enemy.mesh);
+		}
+
+	}
+
+	function addChatMessage(name, message) {
+		let $chatMessages = document.querySelector("#messages");
+
+		let $p = document.createElement('div');
+		let $text = document.createTextNode(`[${name}] ${message}`);
+		$p.appendChild($text);
+		$chatMessages.appendChild($p);
+
+		let messageList = document.querySelectorAll("#messages > div");
+		if (messageList.length > 5) {
+			messageList[0].remove();
+		}
 	}
 
 	function throttle(fn, threshhold, scope) {
@@ -308,14 +372,25 @@
 		}
 	}
 
+	function createEnemyPool(poolSize) {
+		poolSize = poolSize || 30;
+		for (let i = 0; i < poolSize; i++) {
+			enemies.push(new game.entities.Enemy());
+		}
+	}
+
 	function init(event) {
 		stats.showPanel(0);
 		document.body.appendChild(stats.dom);
 
 		let $nameInput = document.querySelector("#login input");
 		let $submitButton = document.querySelector("#submitname");
+		let $chatInput = document.querySelector("#send");
+
 		$nameInput.focus();
+
 		$nameInput.addEventListener('keyup', requestJoinGameKeyUp, false);
+		$chatInput.addEventListener('keyup', sendChatMessage, false);
 		$submitButton.addEventListener('click', requestJoinGame, true);
 
 		document.addEventListener('mousemove', handleMouseMove, false);
@@ -325,6 +400,7 @@
 
 		createScene();
 		createBulletPool(100);
+		createEnemyPool(30);
 		createLights();
 		createGround();
 		createSky();
@@ -344,6 +420,17 @@
 	function requestJoinGameKeyUp(event) {
 		if (event.keyCode === 13) {
 			requestJoinGame();
+		}
+	}
+
+	function sendChatMessage(event) {
+		let $chatInput = document.querySelector("#send");
+
+		if (event.keyCode === 13) {
+			if ($chatInput.value.trim()) {
+				game.joinedGame && network.socket.emit('chatMessage', $chatInput.value.trim());
+				$chatInput.value = '';
+			}
 		}
 	}
 
@@ -375,16 +462,22 @@
 		direction.z = 0;
 
 		network.socket.emit('shootBullet', { pos: position, dir: direction });
-		shootBullet(position, direction);
+		shootBullet(position, direction, game.player);
 	}
 
-	function shootBullet(position, direction) {
+	function shootBullet(position, direction, origin) {
 		let bullet = bullets.filter((b) => { return !b.alive; })[0];
 		if (bullet) {
 			bullet.mesh.position.x = position.x + 15;
 			bullet.mesh.position.y = position.y;
+
+			if (origin) {
+				bullet.mesh.material.color.setHex(origin.color);
+				bullet.mesh.material.color.offsetHSL(0, 0, -0.2);
+			}
+
 			bullet.direction = direction;
-			bullet.shoot();
+			bullet.spawn(origin);
 			scene.add(bullet.mesh);
 		}
 	}
@@ -394,12 +487,28 @@
 		bullets
 			.filter((b) => { return b.alive; })
 			.forEach((b) => {
-				if (b.birthTime + bulletLifeTime < now) {
+				if (b.birthTime + bulletLifetime < now) {
 					b.die();
 					scene.remove(b.mesh);
 				}
 
 				b.mesh.position.addScaledVector(b.direction, deltaTime * 0.2);
+			});
+	}
+
+	function updateEnemies() {
+		let now = performance.now();
+		enemies
+			.filter((e) => { return e.alive; })
+			.forEach((e) => {
+				if (e.birthTime + enemyCleanupLifetime < now) {
+					e.die();
+					scene.remove(e.mesh);
+				}
+
+				e.mesh.rotation.x += deltaTime * 0.001;
+				e.mesh.rotation.y += deltaTime * 0.003;
+				e.mesh.rotation.z += deltaTime * 0.005;
 			});
 	}
 
@@ -421,5 +530,6 @@
 	}, 50);
 
 })();
+
 
 
