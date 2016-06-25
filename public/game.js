@@ -26,14 +26,16 @@
 		renderer, container,
 		HEIGHT, WIDTH,
 		mousePos = { x: 0, y: 0 },
-		sky, playerPlane, ground,
+		sky, ground,
 		ambientLight, shadowLight,
 		colors = new game.Colors(),
 		network = new game.Network(),
 		stats = new Stats();
 
 	game.joinedGame = false;
-	game.player = null;
+	game.player = {
+		model: null
+	};
 
 	//INIT THREE JS, SCREEN AND MOUSE EVENTS
 	function clampedAspectRatio(height, width) {
@@ -175,9 +177,9 @@
 		let targetY = normalize(mousePos.y, -0.75, 0.75, -50, 330);
 		let targetX = normalize(mousePos.x, -0.75, 0.75, -300, 300);
 
-		tweenPositionToTarget(playerPlane.mesh, targetX, targetY);
+		tweenPositionToTarget(game.player.model.mesh, targetX, targetY);
 
-		playerPlane.propeller.rotation.x += deltaTime * 0.05;
+		game.player.model.propeller.rotation.x += deltaTime * 0.05;
 	}
 
 	function tweenPositionToTarget(mesh, targetX, targetY) {
@@ -242,7 +244,7 @@
 
 			game.joinedGame = false;
 			if (game.player) {
-				scene.remove(playerPlane.mesh);
+				scene.remove(game.player.model.mesh);
 				game.player = null;
 			}
 
@@ -267,8 +269,8 @@
 			game.joinedGame = true;
 			game.player = playerInfo;
 
-			playerPlane = createPlane({name: game.player.name, color: game.player.color});
-			scene.add(playerPlane.mesh);
+			game.player.model = createPlane({name: game.player.name, color: game.player.color});
+			scene.add(game.player.model.mesh);
 		});
 
 		server.on('enemyUpdate', (enemyList) => {
@@ -307,7 +309,6 @@
 			enemy.spawn();
 			scene.add(enemy.mesh);
 		}
-
 	}
 
 	function killEnemy(serverEnemy) {
@@ -316,7 +317,6 @@
 			enemy.die();
 			scene.remove(enemy.mesh);
 		}
-
 	}
 
 	function addChatMessage(name, message) {
@@ -452,12 +452,11 @@
 		if (!game.joinedGame) return;
 
 		let position = new THREE.Vector3();
-		position.setFromMatrixPosition(playerPlane.mesh.matrix);
+		position.setFromMatrixPosition(game.player.model.mesh.matrix);
 
-		let m1 = new THREE.Matrix4();
-		let directionMatrix = m1.extractRotation(playerPlane.mesh.matrix);
+		let directionMatrix = new THREE.Matrix4().extractRotation(game.player.model.mesh.matrix);
 
-		let direction = new THREE.Vector3(4, 0, 0);
+		let direction = new THREE.Vector3(0.75, 0, 0);
 		direction = direction.applyMatrix4(directionMatrix);
 		direction.z = 0;
 
@@ -472,8 +471,7 @@
 			bullet.mesh.position.y = position.y;
 
 			if (origin) {
-				bullet.mesh.material.color.setHex(origin.color);
-				bullet.mesh.material.color.offsetHSL(0, 0, -0.2);
+				bullet.mesh.material = origin.model.bodyMat;
 			}
 
 			bullet.direction = direction;
@@ -492,7 +490,7 @@
 					scene.remove(b.mesh);
 				}
 
-				b.mesh.position.addScaledVector(b.direction, deltaTime * 0.2);
+				b.mesh.position.addScaledVector(b.direction, deltaTime);
 			});
 	}
 
@@ -526,7 +524,7 @@
 		var translatedY = normalize(mousePos.y, -0.75, 0.75, -50, 330);
 		var translatedX = normalize(mousePos.x, -0.75, 0.75, -300, 300);
 
-		network.socket.emit('positionUpdate', { x: translatedX, y: translatedY, z: playerPlane.mesh.position.z });
+		network.socket.emit('positionUpdate', { x: translatedX, y: translatedY, z: game.player.model.mesh.position.z });
 	}, 50);
 
 })();
