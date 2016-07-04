@@ -54,6 +54,7 @@
 		fieldOfView = 50;
 		nearPlane = 1;
 		farPlane = 10000;
+
 		camera = new THREE.PerspectiveCamera(
 			fieldOfView,
 			aspectRatio,
@@ -75,7 +76,6 @@
 
 		container = document.getElementById('world');
 		container.appendChild(renderer.domElement);
-
 	}
 
 	// HANDLE SCREEN EVENTS
@@ -97,11 +97,11 @@
 		shadowLight.castShadow = true;
 
 		shadowLight.shadow.camera.left = -600;
-		shadowLight.shadow.camera.right = 600;
+		shadowLight.shadow.camera.right = 900;
 		shadowLight.shadow.camera.top = 1200;
-		shadowLight.shadow.camera.bottom = -600;
+		shadowLight.shadow.camera.bottom = -1200;
 		shadowLight.shadow.camera.near = 1;
-		shadowLight.shadow.camera.far = 1500;
+		shadowLight.shadow.camera.far = 2000;
 		shadowLight.shadow.mapSize.width = 2048;
 		shadowLight.shadow.mapSize.height = 2048;
 

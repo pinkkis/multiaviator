@@ -13,6 +13,18 @@
 		shading: THREE.FlatShading,
 		roughness: 0.3
 	});
+	const groundMat = new THREE.MeshPhongMaterial({
+		color: colors.Green,
+		shading: THREE.FlatShading,
+	});
+	const mountainMat = new THREE.MeshLambertMaterial({
+		color: colors.Grey,
+		shading: THREE.FlatShading
+	});
+	const leavesMat = new THREE.MeshLambertMaterial({
+		color: colors.Green,
+		shading: THREE.FlatShading
+	});
 
 	const groundRadius = 3500;
 
@@ -21,7 +33,7 @@
 			options = options || {};
 
 			this.mesh = new THREE.Object3D();
-			this.mesh.name = "airPlane";
+			this.mesh.name = options.name || 'AirPlane';
 
 			this.bodyMat = new THREE.MeshLambertMaterial({
 				color: options.color || colors.Red,
@@ -108,32 +120,38 @@
 
 	class Sky {
 		constructor(options) {
-			this.cloudMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+			let cloudMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+			let geom = new THREE.Geometry();
 
-			this.mesh = new THREE.Object3D();
-			this.nClouds = 100;
-			this.clouds = [];
-			let stepAngle = Math.PI * 2 / this.nClouds;
-			for (let i = 0; i < this.nClouds; i++) {
-				let c = new Cloud({material: this.cloudMat});
-				this.clouds.push(c);
+			let numClouds = 175;
+			let stepAngle = Math.PI * 2 / numClouds;
+
+			for (let i = 0; i < numClouds; i++) {
+				let mesh = new Cloud({material: cloudMat}).mesh;
+				let s = 1 + Math.random() * 5;
 				let a = stepAngle * i;
 				let h = groundRadius + 500 + Math.random() * 400;
-				c.mesh.position.y = Math.sin(a) * h;
-				c.mesh.position.x = Math.cos(a) * h;
-				c.mesh.position.z = 100 - Math.random() * 1000;
-				c.mesh.rotation.z = a + Math.PI / 2;
-				let s = 1 + Math.random() * 5;
-				c.mesh.scale.set(s, s, s);
-				this.mesh.add(c.mesh);
+
+				mesh.position.y = Math.sin(a) * h;
+				mesh.position.x = Math.cos(a) * h;
+				mesh.position.z = 100 - Math.random() * 1000;
+				mesh.rotation.z = a + Math.PI / 2;
+				mesh.scale.set(s, s, s);
+
+				mesh.updateMatrix();
+				geom.merge(mesh.geometry, mesh.matrix);
 			}
+
+			this.mesh = new THREE.Mesh(geom, cloudMat);
+			this.mesh.name = 'Sky';
+			this.mesh.castShadow = true;
+			this.mesh.receiveShadow = true;
 		}
 	}
 
 	class Cloud {
 		constructor(options) {
-			this.mesh = new THREE.Object3D();
-			this.mesh.name = "cloud";
+			let geom = new THREE.Geometry();
 
 			let nBlocs = 2 + Math.floor(Math.random() * 3);
 			for (let i = 0; i < nBlocs; i++) {
@@ -146,57 +164,42 @@
 				mesh.rotation.z = Math.random() * Math.PI * 2;
 				mesh.rotation.y = Math.random() * Math.PI * 2;
 				mesh.scale.set(scale, scale, scale);
-				mesh.castShadow = true;
-				mesh.receiveShadow = true;
 
-				this.mesh.add(mesh);
+				mesh.updateMatrix();
+				geom.merge(mesh.geometry, mesh.matrix);
 			}
+
+			this.mesh = new THREE.Mesh(geom, options.material);
+			this.mesh.name = "cloud";
 		}
 	}
 
 	class Ground {
 		constructor(options) {
 			let geom = new THREE.CylinderGeometry(groundRadius, groundRadius, 2500, 40, 1);
-			let mat = new THREE.MeshPhongMaterial({
-				color: colors.Green,
-				shading: THREE.FlatShading,
-			});
-
 			geom.applyMatrix(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
 
-			this.mesh = new THREE.Mesh(geom, mat);
+			this.mesh = new THREE.Mesh(geom, groundMat);
 			this.mesh.receiveShadow = true;
 			this.mesh.castShadow = true;
 
-			this.treeMat = new THREE.MeshLambertMaterial({
-				color: colors.Brown,
-				shading: THREE.FlatShading
-			});
-			this.mountainMat = new THREE.MeshLambertMaterial({
-				color: colors.Grey,
-				shading: THREE.FlatShading
-			});
-			this.leavesMat = new THREE.MeshLambertMaterial({
-				color: colors.Green,
-				shading: THREE.FlatShading
-			});
-
-			this.createMountains({material: this.mountainMat});
-			this.createForests({treeMat: this.treeMat, leavesMat: this.leavesMat});
+			this.createMountains({material: mountainMat});
+			this.createForests({mat: leavesMat});
 		}
 
 		createForests(options) {
-			this.numObjs = 666;
-			this.objs = [];
-			let stepAngle = Math.PI * 2 / this.numObjs;
+			let numObjs = 2000;
+			let stepAngle = Math.PI * 2 / numObjs;
 
 			let originals = [
-				new Tree({treeMat: options.treeMat, leavesMat: options.leavesMat, numLeaves: 1}),
-				new Tree({treeMat: options.treeMat, leavesMat: options.leavesMat, numLeaves: 2}),
-				new Tree({treeMat: options.treeMat, leavesMat: options.leavesMat, numLeaves: 3})
+				new Tree({mat: options.mat, numLeaves: 3}),
+				new Tree({mat: options.mat, numLeaves: 4}),
+				new Tree({mat: options.mat, numLeaves: 5})
 			];
 
-			for (let i = 0; i < this.numObjs; i++) {
+			let treesGeom = new THREE.Geometry();
+
+			for (let i = 0; i < numObjs; i++) {
 				let cloneObj = originals[i%originals.length].mesh.clone();
 
 				let angle = stepAngle * i;
@@ -209,16 +212,22 @@
 				cloneObj.rotation.z = angle - Math.PI / 2;
 				cloneObj.scale.set(scale, scale, scale);
 
-				this.mesh.add(cloneObj);
+				cloneObj.updateMatrix();
+				treesGeom.merge(cloneObj.geometry, cloneObj.matrix);
 			}
 
-			originals = 'undefined';
+			let forest = new THREE.Mesh(treesGeom, options.mat);
+			forest.castShadow = true;
+			forest.receiveShadow = true;
+
+			this.mesh.add(forest);
+
+			originals = undefined;
 		}
 
 		createMountains(options) {
-			this.numObjs = 27;
-			this.obsj = [];
-			let stepAngle = Math.PI * 2 / this.numObjs;
+			let numObjs = 27;
+			let stepAngle = Math.PI * 2 / numObjs;
 
 			let originals = [
 				new Mountain({extraRadius: 200, material: options.material}),
@@ -226,7 +235,9 @@
 				new Mountain({extraRadius: 600, material: options.material})
 			];
 
-			for (let i = 0; i < this.numObjs; i++) {
+			let mountainsGeom = new THREE.Geometry();
+
+			for (let i = 0; i < numObjs; i++) {
 				let cloneObj = originals[i%originals.length].mesh.clone();
 
 				let angle = stepAngle * i;
@@ -239,63 +250,82 @@
 				cloneObj.rotation.z = angle - Math.PI / 2;
 				cloneObj.scale.set(scale, scale, scale);
 
-				this.mesh.add(cloneObj);
+				cloneObj.updateMatrix();
+				mountainsGeom.merge(cloneObj.geometry, cloneObj.matrix);
 			}
 
-			originals = 'undefined';
+			let mountains = new THREE.Mesh(mountainsGeom, options.material);
+			mountains.castShadow = true;
+			mountains.receiveShadow = true;
+			this.mesh.add(mountains);
+
+			originals = undefined;
 		}
 	}
 
 	class Mountain {
 		constructor(options) {
-			let geom = new THREE.ConeBufferGeometry(500 + options.extraRadius, 1000, 4);
+			let geom = new THREE.ConeGeometry(500 + options.extraRadius, 1000, 4);
 			this.mesh = new THREE.Mesh(geom, options.material);
-			this.mesh.name = "mountain";
-			this.mesh.castShadow = true;
-			this.mesh.receiveShadow = true;
+			this.mesh.name = 'Mountain';
 		}
 	}
 
 	class Tree {
 		constructor(options) {
-			this.mesh = new THREE.Object3D();
-			this.mesh.name = "tree";
+			let geom = new THREE.Geometry();
 
-			this.createTrunk(options);
-			this.createLeaves(options);
+			let trunk = this.createTrunk(options);
+			let leaves = this.createLeaves(options);
+
+			geom.merge(trunk.geometry, trunk.matrix);
+			geom.merge(leaves.geometry, leaves.matrix);
+
+			this.mesh = new THREE.Mesh(geom, options.mat);
+			this.mesh.name = 'Tree';
+
+			this.mesh.castShadow = true;
+			this.mesh.receiveShadow = true;
 		}
 
 		createTrunk (options) {
 			options = options || {};
 
-			let geomTrunk = new THREE.CylinderBufferGeometry(15, 15, 50, 3);
-			let trunk = new THREE.Mesh(geomTrunk, options.treeMat);
+			let geomTrunk = new THREE.CylinderGeometry(15, 15, 50, 3);
+			let trunk = new THREE.Mesh(geomTrunk, options.mat);
 
 			trunk.castShadow = false;
 			trunk.receiveShadow = true;
 
-			this.mesh.add(trunk);
+			return trunk;
 		}
 
 		createLeaves (options) {
 			options = options || {};
 			options.numLeaves = options.numLeaves || 1;
 
-			let geom = new THREE.ConeBufferGeometry(50, 100, 5);
+			let leaves = new THREE.Geometry();
+			let coneGeom = new THREE.ConeGeometry(50, 100, 5);
+
 			for (let i = 1; i < options.numLeaves + 1; i++) {
-				let mesh = new THREE.Mesh(geom.clone(), options.leavesMat);
-				mesh.position.y = 25 + (i * 35);
+				let mesh = new THREE.Mesh(coneGeom.clone());
+				mesh.position.y = 25 + (i * 35 * (1 - i/15));
 				mesh.rotation.z = Math.random() * 0.2;
 				mesh.rotation.y = Math.random() * Math.PI * 2;
 
-				let scale = 1 - (i/8);
+				let scale = 1 - (i/6);
 				mesh.scale.set(scale, scale, scale);
 
-				mesh.castShadow = true;
-				mesh.receiveShadow = true;
-
-				this.mesh.add(mesh);
+				mesh.updateMatrix();
+				leaves.merge(mesh.geometry, mesh.matrix);
 			}
+
+			let leavesMesh = new THREE.Mesh(leaves, options.mat);
+
+			leavesMesh.castShadow = true;
+			leavesMesh.receiveShadow = true;
+
+			return leavesMesh;
 		}
 	}
 
