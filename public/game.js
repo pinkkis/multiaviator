@@ -22,7 +22,7 @@
 		players = [],
 		enemies = [],
 		bullets = [],
-		camera, fieldOfView, aspectRatio, nearPlane, farPlane,
+		fieldOfView, aspectRatio, nearPlane, farPlane,
 		renderer, container,
 		HEIGHT, WIDTH,
 		mousePos = { x: 0, y: 0 },
@@ -55,7 +55,7 @@
 		nearPlane = 1;
 		farPlane = 10000;
 
-		camera = new THREE.PerspectiveCamera(
+		game.camera = new THREE.PerspectiveCamera(
 			fieldOfView,
 			aspectRatio,
 			nearPlane,
@@ -64,11 +64,12 @@
 
 		scene.fog = new THREE.FogExp2(0xaaaaaa, 0.0003);
 
-		camera.position.x = 0;
-		camera.position.z = 800;
-		camera.position.y = 15;
+		game.camera.position.x = -200;
+		game.camera.position.z = 800;
+		game.camera.position.y = -30;
 
-		camera.rotation.x = -25;
+		game.camera.rotation.x = 0.2;
+		game.camera.rotation.y = -0.3;
 
 		renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
 		renderer.setSize(WIDTH, HEIGHT);
@@ -83,8 +84,8 @@
 		HEIGHT = window.innerHeight;
 		WIDTH = window.innerWidth;
 		renderer.setSize(WIDTH, HEIGHT);
-		camera.aspect = clampedAspectRatio(WIDTH, HEIGHT);
-		camera.updateProjectionMatrix();
+		game.camera.aspect = clampedAspectRatio(WIDTH, HEIGHT);
+		game.camera.updateProjectionMatrix();
 	}
 
 	// LIGHTS
@@ -156,7 +157,7 @@
 		ground.mesh.rotation.z += deltaTime * gameSpeed * 0.0001;
 		sky.mesh.rotation.z += deltaTime * gameSpeed * 0.0002;
 
-		renderer.render(scene, camera);
+		renderer.render(scene, game.camera);
 
 		stats.end();
 
@@ -174,8 +175,8 @@
 		// ignore before in game
 		if (!game.joinedGame) return;
 
-		let targetY = normalize(mousePos.y, -0.75, 0.75, -50, 330);
-		let targetX = normalize(mousePos.x, -0.75, 0.75, -300, 300);
+		let targetY = normalize(mousePos.y, -0.65, 0.90, -80, 330);
+		let targetX = normalize(mousePos.x, -0.85, 0.85, -300, 300);
 
 		tweenPositionToTarget(game.player.model.mesh, targetX, targetY);
 
