@@ -183,11 +183,21 @@
 	}
 
 	function tweenPositionToTarget(mesh, targetX, targetY) {
-		mesh.position.x += (targetX - mesh.position.x) * deltaTime * tweenSpeed;
-		mesh.position.y += (targetY - mesh.position.y) * deltaTime * tweenSpeed;
+		let calcSpeedX = (targetX - mesh.position.x) * deltaTime * tweenSpeed;
+		let calcSpeedY = (targetY - mesh.position.y) * deltaTime * tweenSpeed;
+
+		mesh.position.x += clampSpeed(calcSpeedX, -10, 10);
+		mesh.position.y += clampSpeed(calcSpeedY, -10, 10);
 
 		mesh.rotation.z = (targetY - mesh.position.y) * deltaTime * tweenSpeed * 0.05;
 		mesh.rotation.x = (mesh.position.y - targetY) * deltaTime * tweenSpeed * 0.04;
+	}
+
+	function clampSpeed(input, min, max) {
+		if (Math.abs(input) < 0.01) return 0;
+
+		return input < min ? min :
+				input > max ? max : input;
 	}
 
 	function addPlayer(player) {
@@ -277,7 +287,6 @@
 			enemyList.forEach((enemy) => {
 				let foundEnemy = findObjectByKeyValue(enemies, 'id', enemy.id);
 				if (!foundEnemy) { spawnEnemy(enemy); }
-				//foundEnemy.lastNetPosition = enemy.position;
 			});
 
 			enemies.forEach((existingEnemy) => {
